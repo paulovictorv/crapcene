@@ -4,7 +4,7 @@ _Lucene, but crappier_
 ## What is this?
 This is a small implementation of an information retrieval system. It is built around the statistical model called BM25,
 which is one strategy to calculate a document score in regard to a query. The formula was implemented verbatim from what
-is specified in this Wikipedia Article.
+is specified in this [Wikipedia Article](https://en.wikipedia.org/wiki/Okapi_BM25).
 
 ```java
 
