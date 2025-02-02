@@ -6,8 +6,8 @@ import lombok.Builder;
 import java.util.Map;
 
 @Builder
-final class InternalDocument {
-    Document document;
+final class InternalDocument<T> {
+    Document<T> document;
     Map<String, Integer> termCount;
 
     public int termCount(String term) {
