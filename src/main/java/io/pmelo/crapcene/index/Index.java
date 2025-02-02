@@ -76,7 +76,7 @@ public class Index<T> {
                             )
                             .average()
                             .orElse(0d);
-                    return new Result<T>(internalDocument.document, score);
+                    return new Result<>(internalDocument.document, score);
                 })
                 .distinct()
                 .filter(result -> !(result.score() <= 0.1d))
