@@ -20,9 +20,10 @@ public class QueryTest {
     class WhenQueryingTermsMatchingOneDocument {
 
         List<Result> results;
-        Document subjectContent = Document.builder()
+        Document<StoredDocument> subjectContent = Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("a content")
+                .value(new StoredDocument("id"))
                 .build();
 
         @BeforeEach
@@ -57,30 +58,39 @@ public class QueryTest {
             assertThat(results.getFirst().document()).isEqualTo(subjectContent);
         }
 
+        @Test
+        void itShouldReturnTheCorrectValue() {
+            assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id"));
+        }
+
     }
 
     @Nested
     class WhenQueryingTermsMatchingMultipleDocuments {
 
         List<Result> results;
-        Document firstContent = Document.builder()
+        Document<StoredDocument> firstContent = Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("a content with multiple content")
+                .value(new StoredDocument("id1"))
                 .build();
 
-        Document secondContent = Document.builder()
+        Document<StoredDocument> secondContent = Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("this should have the lowest score this content with a higher score because content is repeated multiple content")
+                .value(new StoredDocument("id2"))
                 .build();
 
-        Document thirdContent = Document.builder()
+        Document<StoredDocument> thirdContent = Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("another content")
+                .value(new StoredDocument("id3"))
                 .build();
 
-        Document fourthContent = Document.builder()
+        Document<StoredDocument> fourthContent = Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("this should not return")
+                .value(new StoredDocument("id4"))
                 .build();
 
         @BeforeEach
@@ -99,8 +109,13 @@ public class QueryTest {
         }
 
         @Test
-        void itShouldReturnTheCorrectDocument() {
+        void itShouldReturnTheMostRelevantDocumentFirst() {
             assertThat(results.getFirst().document()).isEqualTo(firstContent);
+        }
+
+        @Test
+        void itShouldReturnTheCorrectAttachedValue() {
+            assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id1"));
         }
 
     }
