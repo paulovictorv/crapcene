@@ -56,6 +56,35 @@ by score, descending. So if you want to find the most relevant match, getting th
 This is by no means a production ready lib. It is fine for small projects where you might want to have _some_ searching
 and classifying, but it will definitely break for larger corpus.
 
+## Build and Release
+
+This project uses GitHub Actions to automate the build and release process:
+
+- **Build Workflow**: Automatically builds and tests the project on every push to the main branch and pull request.
+- **Release Workflow**: Publishes the JAR to GitHub Packages when a new release is created.
+
+### Using the Package
+
+To use this package from GitHub Packages, add the following to your pom.xml:
+
+```xml
+<repositories>
+    <repository>
+        <id>github</id>
+        <name>GitHub Packages</name>
+        <url>https://maven.pkg.github.com/paulovictorv/crapcene</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>io.pmelo</groupId>
+        <artifactId>crapcene</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
 ## Next steps
 1. Make it available in maven central.
 2. Refactor the average calculation to be a cumulative average instead of recalculating the full average everytime
