@@ -1,4 +1,6 @@
 package io.pmelo.index;
 
-public record StoredDocument(String id) {
+import java.io.Serializable;
+
+public record StoredDocument(String id) implements Serializable {
 }

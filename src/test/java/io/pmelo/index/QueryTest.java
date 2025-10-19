@@ -1,123 +1,287 @@
 package io.pmelo.index;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.pmelo.crapcene.Document;
 import io.pmelo.crapcene.Result;
 import io.pmelo.crapcene.index.Index;
+import io.pmelo.crapcene.index.IndexStorage;
+import io.pmelo.crapcene.index.MapIndexStorage;
+import io.pmelo.crapcene.index.MVStoreIndexStorage;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 public class QueryTest {
 
-    private final Index index = new Index();
+  abstract static class BaseQueryTest {
 
-    @Nested
-    class WhenQueryingTermsMatchingOneDocument {
+    Index<StoredDocument> index;
+    IndexStorage<StoredDocument> storage;
 
-        List<Result> results;
-        Document<StoredDocument> subjectContent = Document.<StoredDocument>builder()
-                .id(UUID.randomUUID().toString())
-                .content("a content")
-                .value(new StoredDocument("id"))
-                .build();
+    abstract IndexStorage<StoredDocument> createStorage();
 
-        @BeforeEach
-        void setUp() {
+    @BeforeEach
+    public void setup() {
+      storage = createStorage();
+      index = new Index<>(storage);
+    }
 
-            index.addDocument(
-                    subjectContent
-            );
-            index.addDocument(
-                    Document.builder()
-                            .id(UUID.randomUUID().toString())
-                            .content("nothing")
-                            .build()
-            );
-            index.addDocument(
-                    Document.builder()
-                            .id(UUID.randomUUID().toString())
-                            .content("whatever it takes")
-                            .build()
-            );
+    @AfterEach
+    public void tearDown() {
+      index.clear();
+      storage.close();
+    }
+  }
 
-            results = index.query("content");
-        }
+  @Nested
+  class WithMVStore {
 
-        @Test
-        void itShouldReturnOnlyOneDocument() {
-            assertThat(results.size()).isEqualTo(1);
-        }
-
-        @Test
-        void itShouldReturnTheCorrectDocument() {
-            assertThat(results.getFirst().document()).isEqualTo(subjectContent);
-        }
-
-        @Test
-        void itShouldReturnTheCorrectValue() {
-            assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id"));
-        }
-
+    abstract class MVStoreBase extends BaseQueryTest {
+      @Override
+      IndexStorage<StoredDocument> createStorage() {
+        return new MVStoreIndexStorage<>();
+      }
     }
 
     @Nested
-    class WhenQueryingTermsMatchingMultipleDocuments {
+    class WhenQueryingTermsMatchingOneDocument extends MVStoreBase {
 
-        List<Result> results;
-        Document<StoredDocument> firstContent = Document.<StoredDocument>builder()
+      List<Result<StoredDocument>> results;
+
+      Document<StoredDocument> subjectContent =
+          Document.<StoredDocument>builder()
+              .id(UUID.randomUUID().toString())
+              .content("a content")
+              .value(new StoredDocument("id"))
+              .build();
+
+      @BeforeEach
+      void setUp() {
+
+        index.addDocument(subjectContent);
+
+        index.addDocument(
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("nothing")
+                .value(new StoredDocument("123"))
+                .build());
+        index.addDocument(
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("whatever it takes")
+                .value(new StoredDocument("456"))
+                .build());
+
+        results = index.query("content");
+      }
+
+      @Test
+      void itShouldReturnOnlyOneDocument() {
+        assertThat(results.size()).isEqualTo(1);
+      }
+
+      @Test
+      void itShouldReturnTheCorrectDocument() {
+        assertThat(results.getFirst().document()).isEqualTo(subjectContent);
+      }
+
+      @Test
+      void itShouldReturnTheCorrectValue() {
+        assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id"));
+      }
+    }
+
+    @Nested
+    class WhenQueryingTermsMatchingMultipleDocuments extends MVStoreBase {
+
+      List<Result<StoredDocument>> results;
+      Document<StoredDocument> firstContent;
+      Document<StoredDocument> secondContent;
+      Document<StoredDocument> thirdContent;
+      Document<StoredDocument> fourthContent;
+
+      @BeforeEach
+      void setUp() {
+        firstContent =
+            Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("a content with multiple content")
                 .value(new StoredDocument("id1"))
                 .build();
 
-        Document<StoredDocument> secondContent = Document.<StoredDocument>builder()
+        secondContent =
+            Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
-                .content("this should have the lowest score this content with a higher score because content is repeated multiple content")
+                .content(
+                    "this should have the lowest score this content with a higher score because content is repeated multiple content")
                 .value(new StoredDocument("id2"))
                 .build();
 
-        Document<StoredDocument> thirdContent = Document.<StoredDocument>builder()
+        thirdContent =
+            Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("another content")
                 .value(new StoredDocument("id3"))
                 .build();
 
-        Document<StoredDocument> fourthContent = Document.<StoredDocument>builder()
+        fourthContent =
+            Document.<StoredDocument>builder()
                 .id(UUID.randomUUID().toString())
                 .content("this should not return")
                 .value(new StoredDocument("id4"))
                 .build();
 
-        @BeforeEach
-        void setUp() {
-            index.addDocument(firstContent);
-            index.addDocument(secondContent);
-            index.addDocument(thirdContent);
-            index.addDocument(fourthContent);
+        index.addDocument(firstContent);
+        index.addDocument(secondContent);
+        index.addDocument(thirdContent);
+        index.addDocument(fourthContent);
 
-            results = index.query("content");
-        }
+        results = index.query("content");
+      }
 
-        @Test
-        void itShouldReturnExactlyThreeDocuments() {
-            assertThat(results.size()).isEqualTo(3);
-        }
+      @Test
+      void itShouldReturnExactlyThreeDocuments() {
+        assertThat(results.size()).isEqualTo(3);
+      }
 
-        @Test
-        void itShouldReturnTheMostRelevantDocumentFirst() {
-            assertThat(results.getFirst().document()).isEqualTo(firstContent);
-        }
+      @Test
+      void itShouldReturnTheMostRelevantDocumentFirst() {
+        assertThat(results.getFirst().document()).isEqualTo(firstContent);
+      }
 
-        @Test
-        void itShouldReturnTheCorrectAttachedValue() {
-            assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id1"));
-        }
+      @Test
+      void itShouldReturnTheCorrectAttachedValue() {
+        assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id1"));
+      }
+    }
+  }
 
+  @Nested
+  class WithMapStorage {
+
+    abstract class MapBase extends BaseQueryTest {
+      @Override
+      IndexStorage<StoredDocument> createStorage() {
+        return new MapIndexStorage<>();
+      }
     }
 
+    @Nested
+    class WhenQueryingTermsMatchingOneDocument extends MapBase {
+
+      List<Result<StoredDocument>> results;
+
+      Document<StoredDocument> subjectContent =
+          Document.<StoredDocument>builder()
+              .id(UUID.randomUUID().toString())
+              .content("a content")
+              .value(new StoredDocument("id"))
+              .build();
+
+      @BeforeEach
+      void setUp() {
+
+        index.addDocument(subjectContent);
+
+        index.addDocument(
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("nothing")
+                .value(new StoredDocument("123"))
+                .build());
+        index.addDocument(
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("whatever it takes")
+                .value(new StoredDocument("456"))
+                .build());
+
+        results = index.query("content");
+      }
+
+      @Test
+      void itShouldReturnOnlyOneDocument() {
+        assertThat(results.size()).isEqualTo(1);
+      }
+
+      @Test
+      void itShouldReturnTheCorrectDocument() {
+        assertThat(results.getFirst().document()).isEqualTo(subjectContent);
+      }
+
+      @Test
+      void itShouldReturnTheCorrectValue() {
+        assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id"));
+      }
+    }
+
+    @Nested
+    class WhenQueryingTermsMatchingMultipleDocuments extends MapBase {
+
+      List<Result<StoredDocument>> results;
+      Document<StoredDocument> firstContent;
+      Document<StoredDocument> secondContent;
+      Document<StoredDocument> thirdContent;
+      Document<StoredDocument> fourthContent;
+
+      @BeforeEach
+      void setUp() {
+        firstContent =
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("a content with multiple content")
+                .value(new StoredDocument("id1"))
+                .build();
+
+        secondContent =
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content(
+                    "this should have the lowest score this content with a higher score because content is repeated multiple content")
+                .value(new StoredDocument("id2"))
+                .build();
+
+        thirdContent =
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("another content")
+                .value(new StoredDocument("id3"))
+                .build();
+
+        fourthContent =
+            Document.<StoredDocument>builder()
+                .id(UUID.randomUUID().toString())
+                .content("this should not return")
+                .value(new StoredDocument("id4"))
+                .build();
+
+        index.addDocument(firstContent);
+        index.addDocument(secondContent);
+        index.addDocument(thirdContent);
+        index.addDocument(fourthContent);
+
+        results = index.query("content");
+      }
+
+      @Test
+      void itShouldReturnExactlyThreeDocuments() {
+        assertThat(results.size()).isEqualTo(3);
+      }
+
+      @Test
+      void itShouldReturnTheMostRelevantDocumentFirst() {
+        assertThat(results.getFirst().document()).isEqualTo(firstContent);
+      }
+
+      @Test
+      void itShouldReturnTheCorrectAttachedValue() {
+        assertThat(results.getFirst().document().value()).isEqualTo(new StoredDocument("id1"));
+      }
+    }
+  }
 }

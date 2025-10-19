@@ -3,10 +3,11 @@ package io.pmelo.crapcene.index;
 import io.pmelo.crapcene.Document;
 import lombok.Builder;
 
+import java.io.Serializable;
 import java.util.Map;
 
 @Builder
-final class InternalDocument<T> {
+public final class InternalDocument<T> implements Serializable {
     Document<T> document;
     Map<String, Integer> termCount;
 

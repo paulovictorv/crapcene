@@ -30,15 +30,18 @@ is specified in this [Wikipedia Article](https://en.wikipedia.org/wiki/Okapi_BM2
 
 ## How it works
 
-You first need to index your documents. This library will then build an in-memory reverse index, which ties _terms_ to
-a list of potential documents. 
+You first need to index your documents.
+
+1. `Index` can be parameterized to the object you want to store alongside the text content.
+2. You'll need to specify a storage mechanism (as of 2.0.0). There's included support for a in-memory map via `MapIndexStorage` and file based through `MVStoreIndexStorage` (which uses [MVStore](https://www.h2database.com/html/mvstore.html) under the hood).
 
 ```java
-        Index index = new Index();            
+        Index<AType> index = new Index<>(new MapIndexStorage<>());
             index.addDocument(
                     Document.builder()
                             .id(UUID.randomUUID().toString())
                             .content("a content")
+                            .value(new AType("string"))
                             .build()
             );
 ```
@@ -90,4 +93,3 @@ To use this package from GitHub Packages, add the following to your pom.xml:
 2. Refactor the average calculation to be a cumulative average instead of recalculating the full average everytime
 3. Add configuration parameters to allow tuning of BM25 constants (K and B)
 4. Abstract away the tokenizer. Right now it is splitting words with white spaces, but a more fancy tokenizer can be implemented to ignore stopwords (for example)
-5. Abstract away the storage mechanism, allowing for having a not in-memory implementation i.e. a database or a file.
